@@ -1,5 +1,5 @@
 ---
-abstract: unknown
+abstract: 'IRC Client for the Mojo IOLoop'
 author:
   - 'Jan Henning Thorsen <jhthorsen@cpan.org>'
 build_requires:
@@ -8,7 +8,7 @@ configure_requires:
   ExtUtils::MakeMaker: 0
 dynamic_config: 1
 generated_by: 'ExtUtils::MakeMaker version 6.66, CPAN::Meta::Converter version 2.131560'
-license: unknown
+license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
@@ -19,7 +19,11 @@ no_index:
     - inc
 requires:
   IRC::Utils: 0.12
-  Mojolicious: 4.00
+  Mojolicious: 4.30
   Parse::IRC: 1.20
   Unicode::UTF8: 0.59
-version: 0.03
+resources:
+  bugtracker: http://rt.cpan.org/NoAuth/Bugs.html?Dist=Mojo-IRC
+  homepage: https://metacpan.org/release/Mojo-IRC
+  license: http://dev.perl.org/licenses/
+version: 0.0301

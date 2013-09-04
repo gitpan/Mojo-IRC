@@ -6,7 +6,7 @@ Mojo::IRC - IRC Client for the Mojo IOLoop
 
 =head1 VERSION
 
-0.03
+0.0301
 
 =head1 SYNOPSIS
 
@@ -254,7 +254,7 @@ use constant DEBUG => $ENV{MOJO_IRC_DEBUG} ? 1 : 0;
 use constant DEFAULT_CERT => $ENV{MOJO_IRC_CERT_FILE} || catfile dirname(__FILE__), 'mojo-irc-client.crt';
 use constant DEFAULT_KEY => $ENV{MOJO_IRC_KEY_FILE} || catfile dirname(__FILE__), 'mojo-irc-client.key';
 
-our $VERSION = '0.03';
+our $VERSION = '0.0301';
 
 my @DEFAULT_EVENTS = qw/irc_ping irc_nick irc_notice irc_rpl_welcome irc_err_nicknameinuse/;
 
@@ -409,7 +409,10 @@ sub connect {
       my ($method, $message);
       my $buffer = '';
 
-      $err and return $self->$cb($err);
+      if($err) {
+        delete $self->{stream_id};
+        return $self->$cb($err);
+      }
 
       $stream->timeout(0);
       $stream->on(
@@ -425,7 +428,7 @@ sub connect {
         error => sub {
           $self or return;
           $self->ioloop or return;
-          $self->ioloop->remove($self->{stream_id});
+          $self->ioloop->remove(delete $self->{stream_id});
           $self->emit(error => $_[1]);
         }
       );

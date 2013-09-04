@@ -1,12 +1,12 @@
 {
-   "abstract" : "unknown",
+   "abstract" : "IRC Client for the Mojo IOLoop",
    "author" : [
       "Jan Henning Thorsen <jhthorsen@cpan.org>"
    ],
    "dynamic_config" : 1,
    "generated_by" : "ExtUtils::MakeMaker version 6.66, CPAN::Meta::Converter version 2.131560",
    "license" : [
-      "unknown"
+      "perl_5"
    ],
    "meta-spec" : {
       "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
@@ -33,12 +33,21 @@
       "runtime" : {
          "requires" : {
             "IRC::Utils" : "0.12",
-            "Mojolicious" : "4.00",
+            "Mojolicious" : "4.30",
             "Parse::IRC" : "1.20",
             "Unicode::UTF8" : "0.59"
          }
       }
    },
    "release_status" : "stable",
-   "version" : "0.03"
+   "resources" : {
+      "bugtracker" : {
+         "web" : "http://rt.cpan.org/NoAuth/Bugs.html?Dist=Mojo-IRC"
+      },
+      "homepage" : "https://metacpan.org/release/Mojo-IRC",
+      "license" : [
+         "http://dev.perl.org/licenses/"
+      ]
+   },
+   "version" : "0.0301"
 }
