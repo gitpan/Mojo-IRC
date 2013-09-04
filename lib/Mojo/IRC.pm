@@ -6,7 +6,7 @@ Mojo::IRC - IRC Client for the Mojo IOLoop
 
 =head1 VERSION
 
-0.0201
+0.03
 
 =head1 SYNOPSIS
 
@@ -244,15 +244,18 @@ This event is used by IRC errors
 
 use Mojo::Base 'Mojo::EventEmitter';
 use Mojo::IOLoop;
+use File::Basename 'dirname';
+use File::Spec::Functions 'catfile';
 use IRC::Utils;
-use Unicode::UTF8;
-use Parse::IRC   ();
+use Parse::IRC ();
 use Scalar::Util ();
+use Unicode::UTF8;
 use constant DEBUG => $ENV{MOJO_IRC_DEBUG} ? 1 : 0;
+use constant DEFAULT_CERT => $ENV{MOJO_IRC_CERT_FILE} || catfile dirname(__FILE__), 'mojo-irc-client.crt';
+use constant DEFAULT_KEY => $ENV{MOJO_IRC_KEY_FILE} || catfile dirname(__FILE__), 'mojo-irc-client.key';
 
-our $VERSION = '0.0201';
+our $VERSION = '0.03';
 
-my $TIMEOUT        = 900;
 my @DEFAULT_EVENTS = qw/irc_ping irc_nick irc_notice irc_rpl_welcome irc_err_nicknameinuse/;
 
 =head1 ATTRIBUTES
@@ -327,6 +330,26 @@ Password for authentication
 
 has 'pass';
 
+=head2 tls
+
+  $self->tls(undef) # disable (default)
+  $self->tls({}) # enable
+
+Default is "undef" which disable TLS. Setting this to an empty hash will
+enable TLS and this module will load in default certs. It is also possible
+to set custom cert/key:
+
+  $self->tls({ cert => "/path/to/client.crt", key => ... })
+
+This can be generated using
+
+  # certtool --generate-privkey --outfile client.key
+  # certtool --generate-self-signed --load-privkey client.key --outfile client.crt
+
+=cut
+
+has tls => undef;
+
 =head1 METHODS
 
 =head2 change_nick
@@ -359,9 +382,17 @@ second argument will be an error message or empty string on success.
 sub connect {
   my ($self, $cb) = @_;
   my ($host, $port) = split /:/, $self->server;
+  my @tls;
 
   if ($self->{stream_id}) {
     return $self->$cb('');
+  }
+
+  if(my $tls = $self->tls) {
+    push @tls, tls => 1;
+    push @tls, tls_ca => $tls->{ca} if $tls->{ca}; # not sure why this should be supported, but adding it anyway
+    push @tls, tls_cert => $tls->{cert} || DEFAULT_CERT;
+    push @tls, tls_key => $tls->{key} || DEFAULT_KEY;
   }
 
   $port ||= 6667;
@@ -372,6 +403,7 @@ sub connect {
   $self->{stream_id} = $self->ioloop->client(
     address => $host,
     port    => $port,
+    @tls,
     sub {
       my ($loop, $err, $stream) = @_;
       my ($method, $message);
@@ -379,7 +411,7 @@ sub connect {
 
       $err and return $self->$cb($err);
 
-      $stream->timeout($TIMEOUT);
+      $stream->timeout(0);
       $stream->on(
         close => sub {
           $self or return;
@@ -577,7 +609,7 @@ sub irc_rpl_welcome {
   Scalar::Util::weaken($self);
   $self->real_host($message->{prefix});
   $self->{ping_tid} ||= $self->ioloop->recurring(
-    $TIMEOUT - 10,
+    $self->{ping_pong_interval} || 60, # $self->{ping_pong_interval} is EXPERIMENTAL
     sub {
       $self->write(PING => $self->real_host);
     }
@@ -620,5 +652,7 @@ Marcus Ramberg - C<mramberg@cpan.org>
 Jan Henning Thorsen - C<jhthorsen@cpan.org>
 
 =cut
+
+1;
 
 1;
