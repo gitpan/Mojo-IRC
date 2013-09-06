@@ -26,4 +26,5 @@ resources:
   bugtracker: http://rt.cpan.org/NoAuth/Bugs.html?Dist=Mojo-IRC
   homepage: https://metacpan.org/release/Mojo-IRC
   license: http://dev.perl.org/licenses/
-version: 0.0301
+  repository: https://github.com/jhthorsen/mojo-irc
+version: 0.0302
