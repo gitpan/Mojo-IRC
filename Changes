@@ -1,5 +1,15 @@
 Revision history for Mojo-IRC
 
+0.05     Fri Feb 21 20:52:39 2014
+       * Add parser() attribute
+       * Add ctcp() method to quote CTCP messages
+       * Add support for CTCP events
+
+0.04     Fri Feb 21 18:23:16 2014
+       * Fix PASS need to be sent before NICK and USER
+         http://www.irchelp.org/irchelp/rfc/chapter4.html#c4_1_1
+         Contributor: Stephan Jauernick
+
 0.0303   Tue Oct  1 12:23:30 2013
        * Fix irc_err_nicknameinuse: Need to try with same nick, not modify
          the nick attribute.
