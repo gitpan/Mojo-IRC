@@ -6,7 +6,7 @@ Mojo::IRC - IRC Client for the Mojo IOLoop
 
 =head1 VERSION
 
-0.05
+0.0501
 
 =head1 SYNOPSIS
 
@@ -267,7 +267,7 @@ use constant DEBUG => $ENV{MOJO_IRC_DEBUG} ? 1 : 0;
 use constant DEFAULT_CERT => $ENV{MOJO_IRC_CERT_FILE} || catfile dirname(__FILE__), 'mojo-irc-client.crt';
 use constant DEFAULT_KEY => $ENV{MOJO_IRC_KEY_FILE} || catfile dirname(__FILE__), 'mojo-irc-client.key';
 
-our $VERSION = '0.05';
+our $VERSION = '0.0501';
 
 my %CTCP_QUOTE = ( "\012" => 'n', "\015" => 'r', "\0" => '0', "\cP" => "\cP" );
 
@@ -492,14 +492,10 @@ sub connect {
       $self->{stream} = $stream;
       $self->ioloop->delay(
         sub {
-          return $self->write(PASS => $self->pass, shift->begin) if length $self->pass;
-          return shift->begin->();
-        },
-        sub {
-          $self->write(NICK => $self->nick, shift->begin);
-        },
-        sub {
-          $self->write(USER => $self->user, 8, '*', ':' . $self->name, shift->begin);
+          my $delay = shift;
+          $self->write(PASS => $self->pass, $delay->begin) if length $self->pass;
+          $self->write(NICK => $self->nick, $delay->begin);
+          $self->write(USER => $self->user, 8, '*', ':' . $self->name, $delay->begin);
         },
         sub {
           $self->$cb('');
