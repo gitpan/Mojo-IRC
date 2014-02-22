@@ -27,4 +27,4 @@ resources:
   homepage: https://metacpan.org/release/Mojo-IRC
   license: http://dev.perl.org/licenses/
   repository: https://github.com/jhthorsen/mojo-irc
-version: 0.06
+version: 0.0601
