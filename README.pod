@@ -6,7 +6,7 @@ Mojo::IRC - IRC Client for the Mojo IOLoop
 
 =head1 VERSION
 
-0.0501
+0.06
 
 =head1 SYNOPSIS
 
@@ -56,6 +56,34 @@ It will also set up some default events: L</ctcp_ping>, L</ctcp_time>,
 and L</ctcp_version>.
 
 This class inherit from L<Mojo::EventEmitter>.
+
+=head1 TESTING
+
+Set L<MOJO_IRC_OFFLINE> to allow testing without a remote host. Example:
+
+  BEGIN { $ENV{MOJO_IRC_OFFLINE} = 1 }
+  use Mojo::Base -strict;
+  use Mojo::IRC;
+  use Test::More;
+
+  my $irc = Mojo::IRC->new(nick => 'batman', server => 'test.com');
+  $irc->parser(Parse::IRC->new(ctcp => 1));
+
+  $irc->on(
+    ctcp_avatar => sub {
+      my($irc, $message) = @_;
+      $irc->write(
+        NOTICE => $message->{params}[0],
+        $irc->ctcp(AVATAR => 'https://graph.facebook.com/jhthorsen/picture'),
+      );
+    }
+  );
+
+  $irc->from_irc_server(":abc-123 PRIVMSG batman :\x{1}AVATAR\x{1}\r\n");
+  like $irc->{to_irc_server}, qr{NOTICE batman :\x{1}AVATAR https://graph.facebook.com/jhthorsen/picture\x{1}\r\n}, 'sent AVATAR';
+  done_testing;
+
+NOTE! C<from_irc_server()> is only available when C<MOJO_IRC_OFFLINE> is set.
 
 =head1 EVENTS
 
@@ -266,8 +294,9 @@ use Unicode::UTF8;
 use constant DEBUG => $ENV{MOJO_IRC_DEBUG} ? 1 : 0;
 use constant DEFAULT_CERT => $ENV{MOJO_IRC_CERT_FILE} || catfile dirname(__FILE__), 'mojo-irc-client.crt';
 use constant DEFAULT_KEY => $ENV{MOJO_IRC_KEY_FILE} || catfile dirname(__FILE__), 'mojo-irc-client.key';
+use constant OFFLINE => $ENV{MOJO_IRC_OFFLINE} ? 1 : 0;
 
-our $VERSION = '0.0501';
+our $VERSION = '0.06';
 
 my %CTCP_QUOTE = ( "\012" => 'n', "\015" => 'r', "\0" => '0', "\cP" => "\cP" );
 
@@ -282,63 +311,13 @@ my @DEFAULT_EVENTS = qw(
 
 Holds an instance of L<Mojo::IOLoop>.
 
-=cut
-
-has ioloop => sub { Mojo::IOLoop->singleton };
-
-=head2 real_host
-
-Will be set by L</irc_rpl_welcome>. Holds the actual hostname of the IRC
-server that we are connected to.
-
-=cut
-
-has real_host => '';
-
-=head2 user
-
-IRC username.
-
-=cut
-
-has user => '';
-
-=head2 nick
-
-IRC nick name accessor.
-
-=cut
-
-has nick => '';
-
-=head2 server
-
-Server name and optionally a port to connect to. Changing this while connected
-to the IRC server will issue a reconnect.
-
-=cut
-
-
-sub server {
-  my ($self, $server) = @_;
-  my $old = $self->{server} || '';
-
-  Scalar::Util::weaken($self);
-  return $old unless defined $server;
-  return $self if $old and $old eq $server;
-  $self->{server} = $server;
-  return $self unless $self->{stream_id};
-  $self->disconnect(sub { $self->connect(sub {}) });
-  $self;
-}
-
 =head2 name
 
 The name of this IRC client. Defaults to "Mojo IRC".
 
-=cut
+=head2 nick
 
-has name => 'Mojo IRC';
+IRC nick name accessor.
 
 =head2 parser
 
@@ -348,17 +327,19 @@ has name => 'Mojo IRC';
 
 Holds a L<Parse::IRC> object by default.
 
-=cut
-
-has parser => sub { Parse::IRC->new; };
-
 =head2 pass
 
 Password for authentication
 
-=cut
+=head2 real_host
 
-has 'pass';
+Will be set by L</irc_rpl_welcome>. Holds the actual hostname of the IRC
+server that we are connected to.
+
+=head2 server
+
+Server name and optionally a port to connect to. Changing this while connected
+to the IRC server will issue a reconnect.
 
 =head2 tls
 
@@ -376,9 +357,33 @@ This can be generated using
   # certtool --generate-privkey --outfile client.key
   # certtool --generate-self-signed --load-privkey client.key --outfile client.crt
 
+=head2 user
+
+IRC username.
+
 =cut
 
+has ioloop => sub { Mojo::IOLoop->singleton };
+has name => 'Mojo IRC';
+has nick => '';
+has parser => sub { Parse::IRC->new; };
+has pass => '';
+has real_host => '';
 has tls => undef;
+has user => '';
+
+sub server {
+  my ($self, $server) = @_;
+  my $old = $self->{server} || '';
+
+  Scalar::Util::weaken($self);
+  return $old unless defined $server;
+  return $self if $old and $old eq $server;
+  $self->{server} = $server;
+  return $self unless $self->{stream_id};
+  $self->disconnect(sub { $self->connect(sub {}) });
+  $self;
+}
 
 =head1 METHODS
 
@@ -403,7 +408,7 @@ sub change_nick {
 
 =head2 connect
 
-  $self->connect(\&callback);
+  $self = $self->connect(\&callback);
 
 Will login to the IRC L</server> and call C<&callback> once connected. The
 C<&callback> will be called once connected or if it fail to connect. The
@@ -417,7 +422,8 @@ sub connect {
   my @tls;
 
   if ($self->{stream_id}) {
-    return $self->$cb('');
+    $self->$cb('');
+    return $self;
   }
 
   if(my $tls = $self->tls) {
@@ -428,18 +434,25 @@ sub connect {
   }
 
   $port ||= 6667;
+  $self->{buffer} = '';
   $self->{debug_key} ||= "$host:$port";
+  $self->register_default_event_handlers;
+
+  if (OFFLINE) {
+    $self->write(PASS => $self->pass, sub {}) if length $self->pass;
+    $self->write(NICK => $self->nick, sub {});
+    $self->write(USER => $self->user, 8, '*', ':' . $self->name, sub {});
+    $self->$cb('');
+    return $self;
+  }
 
   Scalar::Util::weaken($self);
-  $self->register_default_event_handlers;
   $self->{stream_id} = $self->ioloop->client(
     address => $host,
     port    => $port,
     @tls,
     sub {
       my ($loop, $err, $stream) = @_;
-      my ($method, $message);
-      my $buffer = '';
 
       if($err) {
         delete $self->{stream_id};
@@ -465,28 +478,7 @@ sub connect {
         }
       );
       $stream->on(
-        read => sub {
-          no warnings 'utf8';
-          my $message = Unicode::UTF8::decode_utf8($_[1], sub { $_[0] });
-
-          $buffer .= $message;
-
-          while ($buffer =~ s/^([^\r\n]+)\r\n//m) {
-            warn "[$self->{debug_key}] >>> $1\n" if DEBUG;
-            $message = $self->parser->parse($1);
-            $method = $message->{command} || '';
-
-            if ($method =~ /^\d+$/) {
-              $method = IRC::Utils::numeric_to_name($method);
-            }
-            if ($method !~ /^CTCP_/) {
-              $method = "irc_$method";
-            }
-
-            $self->emit_safe(lc $method, $message);
-            $self->emit_safe('irc_error', $message) if $method =~ m/^err_/i;
-          }
-        }
+        read => sub { $self->_read($_[1]) }
       );
 
       $self->{stream} = $stream;
@@ -503,6 +495,8 @@ sub connect {
       );
     }
   );
+
+  return $self;
 }
 
 =head2 ctcp
@@ -596,7 +590,11 @@ sub write {
   my $buf = Unicode::UTF8::encode_utf8(join(' ', @_), sub { $_[0] });
 
   Scalar::Util::weaken($self);
-  if(ref $self->{stream}) {
+  if (OFFLINE) {
+    $self->{to_irc_server} .= "$buf\r\n";
+    $self->$cb('');
+  }
+  elsif (ref $self->{stream}) {
     warn "[$self->{debug_key}] <<< $buf\n" if DEBUG;
     $self->{stream}->write("$buf\r\n", sub { $self->$cb(''); });
   }
@@ -744,6 +742,35 @@ sub DESTROY {
 
   $ioloop->remove($sid) if $sid;
   $ioloop->remove($tid) if $tid;
+}
+
+# Can be used in unittest to mock input data:
+# $irc->_read($bytes);
+sub _read {
+  my $self = shift;
+
+  no warnings 'utf8';
+  $self->{buffer} .= Unicode::UTF8::decode_utf8($_[0], sub { $_[0] });
+
+  while ($self->{buffer} =~ s/^([^\r\n]+)\r\n//m) {
+    warn "[$self->{debug_key}] >>> $1\n" if DEBUG;
+    my $message = $self->parser->parse($1);
+    my $method = $message->{command} || '';
+
+    if ($method =~ /^\d+$/) {
+      $method = IRC::Utils::numeric_to_name($method);
+    }
+    if ($method !~ /^CTCP_/) {
+      $method = "irc_$method";
+    }
+
+    $self->emit_safe(lc $method, $message);
+    $self->emit_safe('irc_error', $message) if $method =~ m/^err_/i;
+  }
+}
+
+if (OFFLINE) {
+  *from_irc_server = \&_read;
 }
 
 =head1 COPYRIGHT
