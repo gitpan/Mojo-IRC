@@ -6,7 +6,7 @@
    "dynamic_config" : 1,
    "generated_by" : "ExtUtils::MakeMaker version 6.66, CPAN::Meta::Converter version 2.120921",
    "license" : [
-      "perl_5"
+      "artistic_2"
    ],
    "meta-spec" : {
       "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
@@ -22,7 +22,7 @@
    "prereqs" : {
       "build" : {
          "requires" : {
-            "Test::More" : "0.98"
+            "Test::More" : "0.88"
          }
       },
       "configure" : {
@@ -42,15 +42,12 @@
    "release_status" : "stable",
    "resources" : {
       "bugtracker" : {
-         "web" : "http://rt.cpan.org/NoAuth/Bugs.html?Dist=Mojo-IRC"
+         "web" : "https://github.com/jhthorsen/mojo-irc/issues"
       },
-      "homepage" : "https://metacpan.org/release/Mojo-IRC",
-      "license" : [
-         "http://dev.perl.org/licenses/"
-      ],
+      "homepage" : "https://github.com/jhthorsen/mojo-irc",
       "repository" : {
-         "url" : "https://github.com/jhthorsen/mojo-irc"
+         "url" : "https://github.com/jhthorsen/mojo-irc.git"
       }
    },
-   "version" : "0.07"
+   "version" : "0.08"
 }
