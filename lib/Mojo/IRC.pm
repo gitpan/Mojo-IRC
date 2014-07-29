@@ -6,7 +6,7 @@ Mojo::IRC - IRC Client for the Mojo IOLoop
 
 =head1 VERSION
 
-0.08
+0.09
 
 =head1 SYNOPSIS
 
@@ -114,6 +114,9 @@ See L<Mojo::IRC::Events> for example events.
 This event is used to emit IRC errors. It is also possible for finer
 granularity to listen for events such as C<err_nicknameinuse>.
 
+NOTE: L</irc_error> events are emitted even if you listen to C<err_> events,
+but they are always emitted I<after> the C<err_> event.
+
 =head2 irc_event_name
 
 Events that start with "irc_" is emit when there is a normal IRC response.
@@ -134,7 +137,7 @@ use constant DEFAULT_CERT => $ENV{MOJO_IRC_CERT_FILE} || catfile dirname(__FILE_
 use constant DEFAULT_KEY => $ENV{MOJO_IRC_KEY_FILE} || catfile dirname(__FILE__), 'mojo-irc-client.key';
 use constant OFFLINE => $ENV{MOJO_IRC_OFFLINE} ? 1 : 0;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 my %CTCP_QUOTE = ( "\012" => 'n', "\015" => 'r', "\0" => '0', "\cP" => "\cP" );
 
@@ -600,14 +603,9 @@ sub _read {
       $method = IRC::Utils::numeric_to_name($method) or return;
     }
 
-    if ($method =~ /^ERR_/) {
-      $self->emit_safe(irc_error => $message);
-    }
-    elsif ($method !~ /^CTCP_/) {
-      $method = "irc_$method";
-    }
-
+    $method = "irc_$method" if $method !~ /^(CTCP|ERR)_/;
     $self->emit_safe(lc($method) => $message);
+    $self->emit_safe(irc_error => $message) if $method =~ /^ERR_/;
   }
 }
 

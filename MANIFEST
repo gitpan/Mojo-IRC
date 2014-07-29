@@ -1,0 +1,28 @@
+.ship.conf
+Changes
+cpanfile
+lib/Mojo/IRC.pm
+lib/Mojo/IRC/Events.pod
+lib/Mojo/mojo-irc-client.crt
+lib/Mojo/mojo-irc-client.key
+Makefile.PL
+MANIFEST			This list of files
+README
+t/00-basic.t
+t/ctcp.t
+t/data/irc.perl.org
+t/data/join.mojo
+t/data/welcome
+t/default-handlers.t
+t/disconnect.t
+t/error.t
+t/Helper.pm
+t/join.t
+t/nick.t
+t/offline-mode-avatar.t
+t/offline-mode-err.t
+t/offline-mode-numeric.t
+t/register.t
+t/tls.t
+META.yml                                 Module YAML meta-data (added by MakeMaker)
+META.json                                Module JSON meta-data (added by MakeMaker)
