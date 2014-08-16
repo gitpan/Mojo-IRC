@@ -6,7 +6,7 @@ Mojo::IRC - IRC Client for the Mojo IOLoop
 
 =head1 VERSION
 
-0.09
+0.10
 
 =head1 SYNOPSIS
 
@@ -137,7 +137,7 @@ use constant DEFAULT_CERT => $ENV{MOJO_IRC_CERT_FILE} || catfile dirname(__FILE_
 use constant DEFAULT_KEY => $ENV{MOJO_IRC_KEY_FILE} || catfile dirname(__FILE__), 'mojo-irc-client.key';
 use constant OFFLINE => $ENV{MOJO_IRC_OFFLINE} ? 1 : 0;
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 my %CTCP_QUOTE = ( "\012" => 'n', "\015" => 'r', "\0" => '0', "\cP" => "\cP" );
 
@@ -227,25 +227,6 @@ sub server {
 }
 
 =head1 METHODS
-
-=head2 change_nick
-
-This will be deprecated. Use the code below instead:
-
-  $self->write(NICK => $new_nick);
-
-=cut
-
-sub change_nick {
-  my ($self, $nick) = @_;
-
-  warn "change_nick() is deprecated";
-
-  return $self unless length $nick;
-  return $self if $self->nick eq $nick;
-  $self->write(NICK => $nick);
-  $self;
-}
 
 =head2 connect
 
@@ -508,7 +489,7 @@ Used to update the L</nick> attribute when the nick has changed.
 
 sub irc_nick {
   my ($self, $message) = @_;
-  my $old_nick = ($message->{prefix} =~ /^(.*?)!/)[0] || '';
+  my $old_nick = ($message->{prefix} =~ /^[~&@%+]?(.*?)!/)[0] || '';
 
   if ($old_nick eq $self->nick) {
     $self->nick($message->{params}[0]);
