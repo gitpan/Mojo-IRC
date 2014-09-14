@@ -26,4 +26,4 @@ resources:
   bugtracker: https://github.com/jhthorsen/mojo-irc/issues
   homepage: https://github.com/jhthorsen/mojo-irc
   repository: https://github.com/jhthorsen/mojo-irc.git
-version: 0.12
+version: 0.13

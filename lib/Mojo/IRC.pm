@@ -6,7 +6,7 @@ Mojo::IRC - IRC Client for the Mojo IOLoop
 
 =head1 VERSION
 
-0.12
+0.13
 
 =head1 SYNOPSIS
 
@@ -137,7 +137,7 @@ use constant DEFAULT_CERT => $ENV{MOJO_IRC_CERT_FILE} || catfile dirname(__FILE_
 use constant DEFAULT_KEY => $ENV{MOJO_IRC_KEY_FILE} || catfile dirname(__FILE__), 'mojo-irc-client.key';
 use constant OFFLINE => $ENV{MOJO_IRC_OFFLINE} ? 1 : 0;
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 my %CTCP_QUOTE = ( "\012" => 'n', "\015" => 'r', "\0" => '0', "\cP" => "\cP" );
 
@@ -581,13 +581,13 @@ sub _read {
     my $method = $message->{command} || '';
 
     if ($method =~ /^\d+$/) {
-      $self->emit_safe("irc_$method" => $message);
+      $self->emit("irc_$method" => $message);
       $method = IRC::Utils::numeric_to_name($method) or return;
     }
 
     $method = "irc_$method" if $method !~ /^(CTCP|ERR)_/;
-    $self->emit_safe(lc($method) => $message);
-    $self->emit_safe(irc_error => $message) if $method =~ /^ERR_/;
+    $self->emit(lc($method) => $message);
+    $self->emit(irc_error => $message) if $method =~ /^ERR_/;
   }
 }
 
